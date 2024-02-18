@@ -1,4 +1,4 @@
-# Machine Learning Model Project
+# Seph's MVP
 
 ## Overview
 This project involves a complex machine learning model integrating an RBM Layer, a Q-Learning Layer, and Transformer Encoder. It is designed for experimenting with reinforcement learning techniques and neural network architectures.
