@@ -1,0 +1,40 @@
+name: Machine Learning Model CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Train model
+      run: |
+        python model.py
+
+    - name: Evaluate model
+      run: |
+        python model_eval.py
+
+    - name: Upload trained model
+      uses: actions/upload-artifact@v2
+      with:
+        name: trained-model
+        path: Seph_model.h5
