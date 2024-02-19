@@ -28,4 +28,4 @@ To set up the project:
 Contributions to this project are welcome. Feel free to fork the repository, make changes, and submit pull requests. Please document your changes and additions clearly.
 
 ## License
-This project is open-source and available under the MIT License. For more details, see the LICENSE file in the repository.
+This project is open-source and available under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html). For more details, see the LICENSE file in the repository.
