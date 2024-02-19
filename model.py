@@ -112,11 +112,7 @@ def create_neural_network_model(seq_length, d_model, num_hidden_units, action_sp
     input_layer = layers.Input(shape=(seq_length, d_model))
     x_lstm = layers.Bidirectional(layers.LSTM(128, return_sequences=True, kernel_initializer='glorot_uniform'))(input_layer)
     x_conv = layers.Conv1D(filters=32, kernel_size=3, padding='same', activation='relu', kernel_initializer='he_uniform')(x_lstm)
-    x_pos_encoding = positional_encoding(seq_length, d_model)
-    x_pos_encoding = tf.expand_dims(x_pos_encoding, axis=0)  # Add batch dimension
-    x_pos_encoded = x_conv + x_pos_encoding
-    transformer_output = transformer_encoder(x_pos_encoded, head_size=32, num_heads=2, ff_dim=64)
-    x_rbm = RBMLayer(num_hidden_units)(transformer_output)
+    x_rbm = RBMLayer(num_hidden_units)(x_conv)  # Pass the output of Conv1D directly to RBMLayer
     q_learning_layer = QLearningLayer(action_space_size)(x_rbm)
     model = models.Model(inputs=input_layer, outputs=q_learning_layer)
     return model
