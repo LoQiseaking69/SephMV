@@ -15,7 +15,13 @@ class ReplayBuffer:
     def sample_buffer(self, batch_size):
         batch = np.random.choice(len(self.buffer), batch_size, replace=False)
         states, actions, rewards, next_states, dones = zip(*[self.buffer[idx] for idx in batch])
-        return np.array(states), np.array(actions), np.array(rewards), np.array(next_states), np.array(dones)
+        # Ensuring all arrays are of consistent shape
+        states = np.array(states)
+        actions = np.array(actions)
+        rewards = np.array(rewards, dtype=np.float32)
+        next_states = np.array(next_states)
+        dones = np.array(dones, dtype=np.float32)
+        return states, actions, rewards, next_states, dones
 
 # RBM Layer definition
 class RBMLayer(layers.Layer):
