@@ -3,6 +3,11 @@ import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers
 import gym
 from collections import deque
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # ReplayBuffer implementation
 class ReplayBuffer:
@@ -122,18 +127,18 @@ def train_model_in_bipedalwalker(env_name, model, num_episodes, batch_size=64):
     env = gym.make(env_name)
     for episode in range(num_episodes):
         initial_state = env.reset()
-        state = np.expand_dims(initial_state, axis=0)
+        state = np.expand_dims(np.array(initial_state), axis=0)  # Ensure initial_state is a numpy array
         done = False
         total_reward = 0
         while not done:
             action = model.choose_action(state)
             next_state, reward, done, _ = env.step(action)
-            next_state = np.expand_dims(next_state, axis=0)
+            next_state = np.expand_dims(np.array(next_state), axis=0)  # Ensure next_state is a numpy array
             model.store_transition(state, action, reward, next_state, done)
             model.update(batch_size)
             state = next_state
             total_reward += reward
-        print(f'Episode {episode + 1}/{num_episodes}, Total Reward: {total_reward}')
+        logger.info(f'Episode {episode + 1}/{num_episodes}, Total Reward: {total_reward}')
     env.close()
 
 # Parameters for the model and training
