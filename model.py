@@ -18,6 +18,8 @@ class ReplayBuffer:
         self.buffer.append(transition)
 
     def sample_buffer(self, batch_size):
+        if len(self.buffer) < batch_size:
+            return None
         batch = np.random.choice(len(self.buffer), batch_size, replace=False)
         states, actions, rewards, next_states, dones = zip(*[self.buffer[idx] for idx in batch])
         # Ensuring all arrays are of consistent shape
@@ -67,10 +69,10 @@ class QLearningLayer(layers.Layer):
         return self.q_network(state)
 
     def update(self, batch_size):
-        if len(self.replay_buffer.buffer) < batch_size:
+        data = self.replay_buffer.sample_buffer(batch_size)
+        if data is None:
             return
-
-        states, actions, rewards, next_states, dones = self.replay_buffer.sample_buffer(batch_size)
+        states, actions, rewards, next_states, dones = data
         q_values = self.q_network.predict(states)
         next_q_values = self.q_network.predict(next_states)
 
@@ -127,13 +129,13 @@ def train_model_in_bipedalwalker(env_name, model, num_episodes, batch_size=64):
     env = gym.make(env_name)
     for episode in range(num_episodes):
         initial_state = env.reset()
-        state = np.expand_dims(np.array(initial_state), axis=0)  # Ensure initial_state is a numpy array
+        state = np.array([initial_state])  # Ensure initial_state is a numpy array with correct shape
         done = False
         total_reward = 0
         while not done:
             action = model.choose_action(state)
             next_state, reward, done, _ = env.step(action)
-            next_state = np.expand_dims(np.array(next_state), axis=0)  # Ensure next_state is a numpy array
+            next_state = np.array([next_state])  # Ensure next_state is a numpy array with correct shape
             model.store_transition(state, action, reward, next_state, done)
             model.update(batch_size)
             state = next_state
@@ -154,7 +156,10 @@ model = create_neural_network_model(seq_length, d_model, num_hidden_units, actio
 model.compile(optimizer=optimizers.Adam(learning_rate=0.001), loss='mse')
 
 # Train the model
-train_model_in_bipedalwalker(env_name, model, num_episodes)
+try:
+    train_model_in_bipedalwalker(env_name, model, num_episodes)
+except Exception as e:
+    logger.error(f"An error occurred during training: {e}")
 
 # Save the trained model
 model.save('Seph_model.h5')
