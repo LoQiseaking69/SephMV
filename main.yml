@@ -1,4 +1,4 @@
-name: Machine Learning Model CI/CD
+name: Sephs V1 Model CI/CD
 
 on:
   push:
@@ -11,6 +11,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
 
     steps:
     - name: Checkout code
@@ -19,22 +22,33 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache Python Dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
 
     - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Lint with Flake8
       run: |
-        pip install -r requirements.txt
+        pip install flake8
+        flake8 . --select=E9,F63,F7,F82 --show-source --statistics
 
     - name: Train model
-      run: |
-        python model.py
+      run: python model.py
 
     - name: Evaluate model
-      run: |
-        python model_eval.py
+      run: python model_eval.py
 
     - name: Upload trained model
+      if: github.ref == 'refs/heads/main'
       uses: actions/upload-artifact@v2
       with:
-        name: trained-model
+        name: trained-model-${{ github.run_number }}
         path: Seph_model.h5

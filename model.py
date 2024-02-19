@@ -3,7 +3,39 @@ import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers
 import gym
 
-# RBM Layer
+# ReplayBuffer implementation
+class ReplayBuffer:
+    def __init__(self, max_size, input_shape, n_actions):
+        self.mem_size = max_size
+        self.mem_cntr = 0
+        self.state_memory = np.zeros((self.mem_size,) + input_shape, dtype=np.float32)
+        self.new_state_memory = np.zeros((self.mem_size,) + input_shape, dtype=np.float32)
+        self.action_memory = np.zeros((self.mem_size, n_actions), dtype=np.int8)
+        self.reward_memory = np.zeros(self.mem_size, dtype=np.float32)
+        self.terminal_memory = np.zeros(self.mem_size, dtype=np.int32)
+
+    def store_transition(self, state, action, reward, new_state, done):
+        index = self.mem_cntr % self.mem_size
+        self.state_memory[index] = state
+        self.new_state_memory[index] = new_state
+        self.action_memory[index] = action
+        self.reward_memory[index] = reward
+        self.terminal_memory[index] = done
+        self.mem_cntr += 1
+
+    def sample_buffer(self, batch_size):
+        max_mem = min(self.mem_cntr, self.mem_size)
+        batch = np.random.choice(max_mem, batch_size, replace=False)
+
+        states = self.state_memory[batch]
+        actions = self.action_memory[batch]
+        rewards = self.reward_memory[batch]
+        new_states = self.new_state_memory[batch]
+        dones = self.terminal_memory[batch]
+
+        return states, actions, rewards, new_states, dones
+
+# RBM Layer definition
 class RBMLayer(layers.Layer):
     def __init__(self, num_hidden_units):
         super(RBMLayer, self).__init__()
@@ -21,38 +53,7 @@ class RBMLayer(layers.Layer):
         activation = tf.matmul(inputs, self.rbm_weights) + self.biases
         return tf.nn.sigmoid(activation)
 
-# Replay Buffer
-class ReplayBuffer:
-    def __init__(self, max_size, input_shape, n_actions):
-        self.mem_size = max_size
-        self.mem_cntr = 0
-        self.state_memory = np.zeros((self.mem_size,) + input_shape, dtype=np.float32)
-        self.new_state_memory = np.zeros((self.mem_size,) + input_shape, dtype=np.float32)
-        self.action_memory = np.zeros((self.mem_size, n_actions), dtype=np.int8)
-        self.reward_memory = np.zeros(self.mem_size, dtype=np.float32)
-        self.terminal_memory = np.zeros(self.mem_size, dtype=np.int32)
-
-    def store_transition(self, state, action, reward, state_, done):
-        index = self.mem_cntr % self.mem_size
-        self.state_memory[index] = state
-        self.new_state_memory[index] = state_
-        self.action_memory[index] = action
-        self.reward_memory[index] = reward
-        self.terminal_memory[index] = done
-        self.mem_cntr += 1
-
-    def sample_buffer(self, batch_size):
-        max_mem = min(self.mem_cntr, self.mem_size)
-        batch = np.random.choice(max_mem, batch_size, replace=False)
-        states = self.state_memory[batch]
-        states_ = self.new_state_memory[batch]
-        actions = self.action_memory[batch]
-        rewards = self.reward_memory[batch]
-        terminal = self.terminal_memory[batch]
-
-        return states, actions, rewards, states_, terminal
-
-# Q-Learning Layer
+# QLearningLayer definition
 class QLearningLayer(layers.Layer):
     def __init__(self, action_space_size, state_size, learning_rate=0.01, gamma=0.95, epsilon=0.1):
         super(QLearningLayer, self).__init__()
@@ -62,7 +63,9 @@ class QLearningLayer(layers.Layer):
         self.gamma = gamma
         self.epsilon = epsilon
         self.replay_buffer = ReplayBuffer(100000, state_size, action_space_size)
-        self.q_network = layers.Dense(action_space_size, activation=None)
+
+    def build(self, input_shape):
+        self.q_network = layers.Dense(self.action_space_size, activation=None)
         self.optimizer = optimizers.Adam(learning_rate=self.learning_rate)
 
     def call(self, state):
@@ -71,14 +74,17 @@ class QLearningLayer(layers.Layer):
     def update(self, batch_size):
         if self.replay_buffer.mem_cntr < batch_size:
             return
-        state, action, reward, next_state, done = self.replay_buffer.sample_buffer(batch_size)
+
+        state, action, reward, new_state, done = self.replay_buffer.sample_buffer(batch_size)
+
         with tf.GradientTape() as tape:
             q_values = self.q_network(state)
             q_action = tf.reduce_sum(tf.multiply(q_values, tf.one_hot(action, self.action_space_size)), axis=1)
-            next_q_values = self.q_network(next_state)
+            next_q_values = self.q_network(new_state)
             max_next_q_values = tf.reduce_max(next_q_values, axis=1)
             target_q_values = reward + self.gamma * max_next_q_values * (1 - done)
             loss = tf.reduce_mean(tf.square(target_q_values - q_action))
+
         grads = tape.gradient(loss, self.q_network.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.q_network.trainable_variables))
 
@@ -90,8 +96,9 @@ class QLearningLayer(layers.Layer):
             action = np.random.choice(self.action_space_size)
         else:
             state = np.array([state])
-            q_values = self.q_network.predict(state)
+            q_values = self.q_network(state)
             action = np.argmax(q_values)
+
         return action
 
 # Positional Encoding for Transformer
