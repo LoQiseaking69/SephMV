@@ -136,14 +136,15 @@ def create_neural_network_model(seq_length, d_model, num_hidden_units, action_sp
 def train_model_in_bipedalwalker(env_name, model, num_episodes):
     env = gym.make(env_name)
     for episode in range(num_episodes):
-        state = env.reset()
+        initial_state = env.reset()
+        state = np.array(initial_state) if isinstance(initial_state, tuple) else initial_state
         done = False
         total_reward = 0
         while not done:
             state = state.reshape((1, -1))  # Reshape for the network
             action = model.choose_action(state)
             next_state, reward, done, _ = env.step(action)
-            next_state = next_state.reshape((1, -1))
+            next_state = np.array(next_state) if isinstance(next_state, tuple) else next_state
             model.store_transition(state, action, reward, next_state, done)
             model.update(64)  # Update with a batch size of 64
             state = next_state
