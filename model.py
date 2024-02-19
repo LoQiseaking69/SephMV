@@ -107,7 +107,7 @@ def positional_encoding(seq_length, d_model):
     div_term = tf.exp(tf.range(0, d_model, 2, dtype=tf.float32) * -(tf.math.log(10000.0) / d_model))
     sine_terms = tf.sin(position * div_term)
     cosine_terms = tf.cos(position * div_term)
-    pos_encoding = tf.reshape(tf.concat([sine_terms, cosine_terms], axis=-1), [1, seq_length, d_model])
+    pos_encoding = tf.concat([sine_terms, cosine_terms], axis=-1)
     return pos_encoding
 
 # Transformer Encoder Layer
@@ -128,6 +128,7 @@ def create_neural_network_model(seq_length, d_model, num_hidden_units, action_sp
     x_lstm = layers.Bidirectional(layers.LSTM(128, return_sequences=True))(input_layer)
     x_conv = layers.Conv1D(filters=32, kernel_size=3, padding='same', activation='relu')(x_lstm)
     x_pos_encoding = positional_encoding(seq_length, d_model)
+    x_pos_encoding = tf.expand_dims(x_pos_encoding, axis=0)  # Add batch dimension
     x_pos_encoded = x_conv + x_pos_encoding
     transformer_output = transformer_encoder(x_pos_encoded, head_size=32, num_heads=2, ff_dim=64)
     x_rbm = RBMLayer(num_hidden_units)(transformer_output)
@@ -159,7 +160,7 @@ def train_model_in_bipedalwalker(env_name, model, num_episodes):
 # Parameters for the model and training
 env_name = 'BipedalWalker-v3'
 seq_length = 128
-d_model = 24
+d_model = 32  # Adjusted to match the dimension of positional encoding
 num_hidden_units = 256
 action_space_size = 4
 num_episodes = 100
