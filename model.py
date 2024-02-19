@@ -63,9 +63,7 @@ class QLearningLayer(layers.Layer):
         self.gamma = gamma
         self.epsilon = epsilon
         self.replay_buffer = ReplayBuffer(100000, state_size, action_space_size)
-
-    def build(self, input_shape):
-        self.q_network = layers.Dense(self.action_space_size, activation=None)
+        self.q_network = layers.Dense(action_space_size, activation=None)
         self.optimizer = optimizers.Adam(learning_rate=self.learning_rate)
 
     def call(self, state):
@@ -104,10 +102,9 @@ class QLearningLayer(layers.Layer):
 # Positional Encoding for Transformer
 def positional_encoding(seq_length, d_model):
     position = tf.range(seq_length, dtype=tf.float32)[:, tf.newaxis]
-    div_term = tf.exp(tf.range(0, d_model, 2, dtype=tf.float32) * -(tf.math.log(10000.0) / d_model))
-    sine_terms = tf.sin(position * div_term)
-    cosine_terms = tf.cos(position * div_term)
-    pos_encoding = tf.reshape(tf.concat([sine_terms, cosine_terms], axis=-1), [1, seq_length, d_model])
+    div_term = tf.exp(tf.range(0, d_model // 2, dtype=tf.float32) * -(tf.math.log(10000.0) / d_model))
+    pos_encoding = tf.concat([tf.sin(position * div_term), tf.cos(position * div_term)], axis=-1)
+    pos_encoding = tf.reshape(pos_encoding, [1, seq_length, -1])
     return pos_encoding
 
 # Transformer Encoder Layer
@@ -127,11 +124,11 @@ def create_neural_network_model(seq_length, d_model, num_hidden_units, action_sp
     input_layer = layers.Input(shape=(seq_length, d_model))
     x_lstm = layers.Bidirectional(layers.LSTM(128, return_sequences=True))(input_layer)
     x_conv = layers.Conv1D(filters=32, kernel_size=3, padding='same', activation='relu')(x_lstm)
-    x_pos_encoding = positional_encoding(seq_length, d_model)
+    x_pos_encoding = positional_encoding(seq_length, 32)  # Adjusted to match the Conv1D filters
     x_pos_encoded = x_conv + x_pos_encoding
     transformer_output = transformer_encoder(x_pos_encoded, head_size=32, num_heads=2, ff_dim=64)
     x_rbm = RBMLayer(num_hidden_units)(transformer_output)
-    q_learning_layer = QLearningLayer(action_space_size, (seq_length, d_model))(x_rbm)
+    q_learning_layer = QLearningLayer(action_space_size, (seq_length, 32))(x_rbm)  # Adjusted state_size to match
     model = models.Model(inputs=input_layer, outputs=q_learning_layer)
     return model
 
@@ -157,7 +154,7 @@ def train_model_in_bipedalwalker(env_name, model, num_episodes):
 # Parameters for the model and training
 env_name = 'BipedalWalker-v3'
 seq_length = 128  # Example sequence length
-d_model = 24  # Example dimension
+d_model = 32  # Adjusted to match Conv1D filters
 num_hidden_units = 256
 action_space_size = 4  # Adjust based on the environment
 num_episodes = 100  # Number of training episodes
