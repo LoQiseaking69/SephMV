@@ -1,4 +1,4 @@
-name: Machine Learning Model CI/CD
+name: Sephs V1 Model CI/CD
 
 on:
   push:
