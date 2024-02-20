@@ -25,13 +25,9 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    - name: Build model
-      run: |
-        python model.py # This will build the model
-
     - name: Train model
       run: |
-        python train.py # This will train the model
+        python train.py # This script will import and use model.py for training
 
     - name: Evaluate model
       run: |
