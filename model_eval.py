@@ -3,6 +3,7 @@ import gym
 import numpy as np
 import tensorflow as tf
 import logging
+from tensorflow.keras import layers
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -43,7 +44,7 @@ class QLearningLayer(tf.keras.layers.Layer):
     def call(self, state):
         return self.q_network(state)
 
-# Function for Positional Encoding (as defined in your training script)
+# Function for Positional Encoding
 def positional_encoding(seq_length, d_model):
     position = tf.range(seq_length, dtype=tf.float32)[:, tf.newaxis]
     div_term = tf.exp(tf.range(0, d_model, 2, dtype=tf.float32) * -(np.log(10000.0) / d_model))
@@ -52,7 +53,7 @@ def positional_encoding(seq_length, d_model):
     pos_encoding = tf.concat([sine_terms, cosine_terms], axis=-1)
     return pos_encoding
 
-# Function for Transformer Encoder Layer (as defined in your training script)
+# Function for Transformer Encoder Layer
 def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
     x = layers.LayerNormalization(epsilon=1e-6)(inputs)
     x = layers.MultiHeadAttention(key_dim=head_size, num_heads=num_heads, dropout=dropout)(x, x)
