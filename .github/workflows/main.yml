@@ -3,38 +3,47 @@ name: Seph's V1 Model CI/CD
 on:
   push:
     branches:
-      - main
+      - '[main]'
   pull_request:
     branches:
-      - main
+      - '[main]'
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
 
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
+      - name: Create and activate virtual environment
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            .\venv\Scripts\Activate.ps1
+          fi
 
-    - name: Train model
-      run: |
-        python train.py # This script will import and use model.py for training
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Evaluate model
-      run: |
-        python model_eval.py # Ensure you have a model_eval.py for model evaluation
+      - name: Train model
+        run: |
+          python train.py # This script will import and use model.py for training
 
-    - name: Upload trained model
-      uses: actions/upload-artifact@v2
-      with:
-        name: trained-model
-        path: Seph_model/ # Adjusted to the SavedModel directory
+      - name: Evaluate model
+        run: |
+          python model_eval.py # Ensure you have a model_eval.py for model evaluation
+
+      - name: Upload trained model
+        uses: actions/upload-artifact@v2
+        with:
+          name: trained-model
+          path: Seph_model/ # Adjusted to the SavedModel directory
