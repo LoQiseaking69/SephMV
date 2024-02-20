@@ -24,7 +24,6 @@ jobs:
       - name: Create and activate virtual environment
         run: |
           python -m venv venv
-          # Activate virtual environment
           if [ "$RUNNER_OS" == "Windows" ]; then
             .\venv\Scripts\Activate.ps1
           else
@@ -36,16 +35,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Train model
+      - name: Train and Evaluate model
         run: |
-          # Ensure virtual environment is active
-          source venv/bin/activate
           python train.py # This script will import and use model.py for training
-
-      - name: Evaluate model
-        run: |
-          # Ensure virtual environment is active
-          source venv/bin/activate
           python model_eval.py # This script will import and use model.py for model evaluation
 
       - name: Upload trained model
