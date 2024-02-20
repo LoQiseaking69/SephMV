@@ -19,7 +19,6 @@ jobs:
       - name: Set up Python environment
         run: |
           python -m venv venv
-          # Windows-specific activation
           .\venv\Scripts\Activate.ps1
           python -m pip install --upgrade pip
 
@@ -43,3 +42,8 @@ jobs:
         with:
           name: trained-model
           path: ./Seph_model/
+
+      # Optional: Clean up the model directory after upload
+      - name: Clean model directory
+        run: |
+          Remove-Item -Path ./Seph_model/ -Recurse
