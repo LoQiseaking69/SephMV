@@ -1,6 +1,7 @@
 import gym
 import logging
 import numpy as np
+from tensorflow.keras import optimizers
 from model import create_neural_network_model
 
 # Set up logging
@@ -33,6 +34,8 @@ action_space_size = 4
 num_episodes = 1000
 
 model = create_neural_network_model(seq_length, d_model, num_hidden_units, action_space_size)
+
+# This line has been corrected with the proper import for optimizers
 model.compile(optimizer=optimizers.Adam(learning_rate=0.001), loss='mse')
 
 try:
@@ -40,4 +43,5 @@ try:
 except Exception as e:
     logger.error(f"An error occurred during training: {e}")
 
+# Save the trained model using the 'tf' format
 model.save('Seph_model', save_format='tf')
