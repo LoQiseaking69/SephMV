@@ -22,7 +22,6 @@ class ReplayBuffer:
             return None
         batch = np.random.choice(len(self.buffer), batch_size, replace=False)
         states, actions, rewards, next_states, dones = zip(*[self.buffer[idx] for idx in batch])
-        # Ensuring all arrays are of consistent shape
         states = np.array(states)
         actions = np.array(actions)
         rewards = np.array(rewards, dtype=np.float32)
@@ -117,7 +116,10 @@ def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
 # Model building function with integrated RBM, Q-Learning, LSTM, Conv1D, and Transformer layers
 def create_neural_network_model(seq_length, d_model, num_hidden_units, action_space_size):
     input_layer = layers.Input(shape=(seq_length, d_model))
-    x_lstm = layers.Bidirectional(layers.LSTM(128, return_sequences=True, kernel_initializer='glorot_uniform'))(input_layer)
+    x = positional_encoding(seq_length, d_model)
+    x = x + input_layer
+    x = transformer_encoder(x, head_size=64, num_heads=4, ff_dim=256)
+    x_lstm = layers.Bidirectional(layers.LSTM(128, return_sequences=True, kernel_initializer='glorot_uniform'))(x)
     x_conv = layers.Conv1D(filters=32, kernel_size=3, padding='same', activation='relu', kernel_initializer='he_uniform')(x_lstm)
     x_rbm = RBMLayer(num_hidden_units)(x_conv)  # Pass the output of Conv1D directly to RBMLayer
     q_learning_layer = QLearningLayer(action_space_size)(x_rbm)
@@ -161,5 +163,5 @@ try:
 except Exception as e:
     logger.error(f"An error occurred during training: {e}")
 
-# Save the trained model
-model.save('Seph_model.h5')
+# Save the trained model using the 'tf' format
+model.save('Seph_model', save_format='tf')
