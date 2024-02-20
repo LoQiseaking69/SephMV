@@ -16,32 +16,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
-
-      - name: Create and activate virtual environment
+      - name: Set up Python environment
         run: |
           python -m venv venv
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            .\venv\Scripts\Activate.ps1
-          else
-            source venv/bin/activate
-          fi
+          # Windows-specific activation
+          .\venv\Scripts\Activate.ps1
+          python -m pip install --upgrade pip
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          .\venv\Scripts\Activate.ps1
           pip install -r requirements.txt
 
-      - name: Train and Evaluate model
+      - name: Train model
         run: |
-          python train.py # This script will import and use model.py for training
-          python model_eval.py # This script will import and use model.py for model evaluation
+          .\venv\Scripts\Activate.ps1
+          python train.py
+
+      - name: Evaluate model
+        run: |
+          .\venv\Scripts\Activate.ps1
+          python model_eval.py
 
       - name: Upload trained model
         uses: actions/upload-artifact@v2
         with:
           name: trained-model
-          path: Seph_model/ # Adjust the path as necessary to where the model is saved
+          path: ./Seph_model/
