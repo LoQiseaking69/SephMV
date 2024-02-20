@@ -33,9 +33,8 @@ num_hidden_units = 64
 action_space_size = 4
 num_episodes = 1000
 
+# Create and compile the model
 model = create_neural_network_model(seq_length, d_model, num_hidden_units, action_space_size)
-
-# This line has been corrected with the proper import for optimizers
 model.compile(optimizer=optimizers.Adam(learning_rate=0.001), loss='mse')
 
 try:
