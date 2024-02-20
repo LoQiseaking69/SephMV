@@ -113,3 +113,4 @@ def create_neural_network_model(seq_length, d_model, num_hidden_units, action_sp
     q_learning_layer = QLearningLayer(action_space_size)(x_rbm)
     model = models.Model(inputs=input_layer, outputs=q_learning_layer)
     return model
+    
