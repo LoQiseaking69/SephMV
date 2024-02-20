@@ -1,15 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers
-import gym
 from collections import deque
-import logging
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# ReplayBuffer implementation
 class ReplayBuffer:
     def __init__(self, max_size):
         self.buffer = deque(maxlen=max_size)
@@ -29,7 +22,6 @@ class ReplayBuffer:
         dones = np.array(dones, dtype=np.float32)
         return states, actions, rewards, next_states, dones
 
-# RBM Layer definition
 class RBMLayer(layers.Layer):
     def __init__(self, num_hidden_units):
         super(RBMLayer, self).__init__()
@@ -47,7 +39,6 @@ class RBMLayer(layers.Layer):
         activation = tf.matmul(inputs, self.rbm_weights) + self.biases
         return tf.nn.sigmoid(activation)
 
-# QLearningLayer definition
 class QLearningLayer(layers.Layer):
     def __init__(self, action_space_size, learning_rate=0.001, gamma=0.99, epsilon=0.1):
         super(QLearningLayer, self).__init__()
@@ -92,7 +83,6 @@ class QLearningLayer(layers.Layer):
             q_values = self.q_network.predict(state)
             return np.argmax(q_values)
 
-# Positional Encoding for Transformer
 def positional_encoding(seq_length, d_model):
     position = tf.range(seq_length, dtype=tf.float32)[:, tf.newaxis]
     div_term = tf.exp(tf.range(0, d_model, 2, dtype=tf.float32) * -(np.log(10000.0) / d_model))
@@ -101,7 +91,6 @@ def positional_encoding(seq_length, d_model):
     pos_encoding = tf.concat([sine_terms, cosine_terms], axis=-1)
     return pos_encoding
 
-# Transformer Encoder Layer
 def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
     x = layers.LayerNormalization(epsilon=1e-6)(inputs)
     x = layers.MultiHeadAttention(key_dim=head_size, num_heads=num_heads, dropout=dropout)(x, x)
@@ -113,7 +102,6 @@ def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
     x = layers.Dense(inputs.shape[-1], kernel_initializer='glorot_uniform')(x)
     return x + res
 
-# Model building function with integrated RBM, Q-Learning, LSTM, Conv1D, and Transformer layers
 def create_neural_network_model(seq_length, d_model, num_hidden_units, action_space_size):
     input_layer = layers.Input(shape=(seq_length, d_model))
     x = positional_encoding(seq_length, d_model)
@@ -121,47 +109,7 @@ def create_neural_network_model(seq_length, d_model, num_hidden_units, action_sp
     x = transformer_encoder(x, head_size=64, num_heads=4, ff_dim=256)
     x_lstm = layers.Bidirectional(layers.LSTM(128, return_sequences=True, kernel_initializer='glorot_uniform'))(x)
     x_conv = layers.Conv1D(filters=32, kernel_size=3, padding='same', activation='relu', kernel_initializer='he_uniform')(x_lstm)
-    x_rbm = RBMLayer(num_hidden_units)(x_conv) 
+    x_rbm = RBMLayer(num_hidden_units)(x_conv)
     q_learning_layer = QLearningLayer(action_space_size)(x_rbm)
     model = models.Model(inputs=input_layer, outputs=q_learning_layer)
     return model
-
-# Training the model in the BipedalWalker environment
-def train_model_in_bipedalwalker(env_name, model, num_episodes, batch_size=64):
-    env = gym.make(env_name)
-    for episode in range(num_episodes):
-        initial_state = env.reset()
-        state = np.array([initial_state])  # Ensure initial_state is a numpy array with correct shape
-        done = False
-        total_reward = 0
-        while not done:
-            action = model.choose_action(state)
-            next_state, reward, done, _ = env.step(action)
-            next_state = np.array([next_state])  # Ensure next_state is a numpy array with correct shape
-            model.store_transition(state, action, reward, next_state, done)
-            model.update(batch_size)
-            state = next_state
-            total_reward += reward
-        logger.info(f'Episode {episode + 1}/{num_episodes}, Total Reward: {total_reward}')
-    env.close()
-
-# Parameters for the model and training
-env_name = 'BipedalWalker-v3'
-seq_length = 128
-d_model = 32
-num_hidden_units = 64
-action_space_size = 4
-num_episodes = 1000
-
-# Create and compile the model
-model = create_neural_network_model(seq_length, d_model, num_hidden_units, action_space_size)
-model.compile(optimizer=optimizers.Adam(learning_rate=0.001), loss='mse')
-
-# Train the model
-try:
-    train_model_in_bipedalwalker(env_name, model, num_episodes)
-except Exception as e:
-    logger.error(f"An error occurred during training: {e}")
-
-# Save the trained model using the 'tf' format
-model.save('Seph_model', save_format='tf')
