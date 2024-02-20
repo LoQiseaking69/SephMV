@@ -43,12 +43,36 @@ class QLearningLayer(tf.keras.layers.Layer):
     def call(self, state):
         return self.q_network(state)
 
+# Function for Positional Encoding (as defined in your training script)
+def positional_encoding(seq_length, d_model):
+    position = tf.range(seq_length, dtype=tf.float32)[:, tf.newaxis]
+    div_term = tf.exp(tf.range(0, d_model, 2, dtype=tf.float32) * -(np.log(10000.0) / d_model))
+    sine_terms = tf.sin(position * div_term)
+    cosine_terms = tf.cos(position * div_term)
+    pos_encoding = tf.concat([sine_terms, cosine_terms], axis=-1)
+    return pos_encoding
+
+# Function for Transformer Encoder Layer (as defined in your training script)
+def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
+    x = layers.LayerNormalization(epsilon=1e-6)(inputs)
+    x = layers.MultiHeadAttention(key_dim=head_size, num_heads=num_heads, dropout=dropout)(x, x)
+    x = layers.Dropout(dropout)(x)
+    res = x + inputs
+    x = layers.LayerNormalization(epsilon=1e-6)(res)
+    x = layers.Dense(ff_dim, activation="relu", kernel_initializer='he_uniform')(x)
+    x = layers.Dropout(dropout)(x)
+    x = layers.Dense(inputs.shape[-1], kernel_initializer='glorot_uniform')(x)
+    return x + res
+
 def load_model(model_path):
     """
     Load the saved model from a specified path.
     """
     try:
-        model = tf.keras.models.load_model(model_path, custom_objects={'RBMLayer': RBMLayer, 'QLearningLayer': QLearningLayer})
+        custom_objects = {'RBMLayer': RBMLayer, 'QLearningLayer': QLearningLayer,
+                          'PositionalEncoding': positional_encoding,
+                          'TransformerEncoder': transformer_encoder}
+        model = tf.keras.models.load_model(model_path, custom_objects=custom_objects)
         logger.info("Model loaded successfully.")
         return model
     except Exception as e:
@@ -68,10 +92,8 @@ def evaluate_model(model, env_name, num_episodes):
         total_reward = 0
 
         while not done:
-            # Prepare the state for prediction
             state = np.array([state])
-            # Predict action based on the trained model
-            q_values = model(state, training=False)  # use model directly for inference
+            q_values = model(state, training=False)  # Use model directly for inference
             action = np.argmax(q_values)
 
             state, reward, done, _ = env.step(action)
