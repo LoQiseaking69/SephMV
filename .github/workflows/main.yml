@@ -37,4 +37,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: trained-model
-        path: Seph_model.h5
+        path: Seph_model/ # Adjusted to the SavedModel directory
