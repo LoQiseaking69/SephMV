@@ -9,36 +9,56 @@ on:
       - main
 
 jobs:
-  build:
+  build-and-test:
     runs-on: self-hosted
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.8, 3.9, 3.10]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set up Python environment
-        run: |
-          python -m venv venv
-          .\venv\Scripts\Activate.ps1
-          python -m pip install --upgrade pip
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
 
+      - name: Cache Python dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
       - name: Install dependencies
         run: |
-          .\venv\Scripts\Activate.ps1
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Train model
+      - name: Lint with flake8
+        continue-on-error: true
         run: |
-          .\venv\Scripts\Activate.ps1
-          python train.py
+          pip install flake8
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Train model
+        run: python train.py
 
       - name: Evaluate model
-        run: |
-          .\venv\Scripts\Activate.ps1
-          python model_eval.py
+        run: python model_eval.py
 
       - name: Upload trained model
+        if: success()
         uses: actions/upload-artifact@v2
         with:
-          name: trained-model
+          name: trained-model-${{ matrix.python-version }}
           path: ./Seph_model/
+
+      - name: Clean up
+        if: always()
+        run: Remove-Item -Path ./Seph_model/ -Recurse
