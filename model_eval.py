@@ -3,67 +3,11 @@ import gym
 import numpy as np
 import tensorflow as tf
 import logging
-from tensorflow.keras import layers
+from model import RBMLayer, QLearningLayer, positional_encoding, transformer_encoder, create_neural_network_model
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Custom RBM Layer Definition
-class RBMLayer(tf.keras.layers.Layer):
-    def __init__(self, num_hidden_units):
-        super(RBMLayer, self).__init__()
-        self.num_hidden_units = num_hidden_units
-
-    def build(self, input_shape):
-        self.rbm_weights = self.add_weight(shape=(input_shape[-1], self.num_hidden_units),
-                                           initializer='random_normal',
-                                           trainable=True)
-        self.biases = self.add_weight(shape=(self.num_hidden_units,),
-                                      initializer='zeros',
-                                      trainable=True)
-
-    def call(self, inputs):
-        activation = tf.matmul(inputs, self.rbm_weights) + self.biases
-        return tf.nn.sigmoid(activation)
-
-# Custom Q-Learning Layer Definition
-class QLearningLayer(tf.keras.layers.Layer):
-    def __init__(self, action_space_size, state_size, learning_rate=0.01, gamma=0.95, epsilon=0.1):
-        super(QLearningLayer, self).__init__()
-        self.action_space_size = action_space_size
-        self.state_size = state_size
-        self.learning_rate = learning_rate
-        self.gamma = gamma
-        self.epsilon = epsilon
-        self.q_network = tf.keras.Sequential([
-            tf.keras.layers.Dense(256, activation='relu', kernel_initializer='he_uniform'),
-            tf.keras.layers.Dense(action_space_size, activation=None, kernel_initializer='glorot_uniform')
-        ])
-
-    def call(self, state):
-        return self.q_network(state)
-
-# Function for Positional Encoding
-def positional_encoding(seq_length, d_model):
-    position = tf.range(seq_length, dtype=tf.float32)[:, tf.newaxis]
-    div_term = tf.exp(tf.range(0, d_model, 2, dtype=tf.float32) * -(np.log(10000.0) / d_model))
-    sine_terms = tf.sin(position * div_term)
-    cosine_terms = tf.cos(position * div_term)
-    pos_encoding = tf.concat([sine_terms, cosine_terms], axis=-1)
-    return pos_encoding
-
-# Function for Transformer Encoder Layer
-def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
-    x = layers.LayerNormalization(epsilon=1e-6)(inputs)
-    x = layers.MultiHeadAttention(key_dim=head_size, num_heads=num_heads, dropout=dropout)(x, x)
-    x = layers.Dropout(dropout)(x)
-    res = x + inputs
-    x = layers.LayerNormalization(epsilon=1e-6)(res)
-    x = layers.Dense(ff_dim, activation="relu", kernel_initializer='he_uniform')(x)
-    x = layers.Dropout(dropout)(x)
-    x = layers.Dense(inputs.shape[-1], kernel_initializer='glorot_uniform')(x)
-    return x + res
 
 def load_model(model_path):
     """
@@ -71,8 +15,8 @@ def load_model(model_path):
     """
     try:
         custom_objects = {'RBMLayer': RBMLayer, 'QLearningLayer': QLearningLayer,
-                          'PositionalEncoding': positional_encoding,
-                          'TransformerEncoder': transformer_encoder}
+                          'positional_encoding': positional_encoding,
+                          'transformer_encoder': transformer_encoder}
         model = tf.keras.models.load_model(model_path, custom_objects=custom_objects)
         logger.info("Model loaded successfully.")
         return model
@@ -95,7 +39,7 @@ def evaluate_model(model, env_name, num_episodes):
         while not done:
             state = np.array([state])
             q_values = model(state, training=False)  # Use model directly for inference
-            action = np.argmax(q_values)
+            action = np.argmax(q_values[0])  # Adjusted to account for model output format
 
             state, reward, done, _ = env.step(action)
             total_reward += reward
