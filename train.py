@@ -1,5 +1,3 @@
-# train.py
-
 import os
 import logging
 import gym
