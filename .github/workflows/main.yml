@@ -34,7 +34,7 @@ jobs:
           python -m venv .venv
           echo "Virtual environment created."
 
-      - name: Activate virtual environment and Install dependencies
+      - name: Install dependencies
         run: |
           cd ${{ env.WORKSPACE_DIR }}
           .\.venv\Scripts\Activate
@@ -42,30 +42,21 @@ jobs:
           pip install -r requirements.txt
           echo "Dependencies installed."
 
-      - name: Build the model
+      - name: Run scripts
         run: |
           cd ${{ env.WORKSPACE_DIR }}
           .\.venv\Scripts\Activate
           python model.py
-
-      - name: Train the model
-        run: |
-          cd ${{ env.WORKSPACE_DIR }}
-          .\.venv\Scripts\Activate
           python train.py
-
-      - name: Evaluate the model
-        run: |
-          cd ${{ env.WORKSPACE_DIR }}
-          .\.venv\Scripts\Activate
           python model_eval.py
+          echo "Scripts executed."
 
-      - name: Commit and push if changes
+      - name: Commit and push changes
         run: |
           cd ${{ env.WORKSPACE_DIR }}
           .\.venv\Scripts\Activate
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add -f .
-          git commit -m "Automated model update" -a || echo "No changes to commit"
+          git add .
+          git diff --staged --quiet || git commit -m "Update from workflow"
           git push
