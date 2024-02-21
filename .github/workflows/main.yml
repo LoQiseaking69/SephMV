@@ -10,22 +10,18 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Manual Cleanup (Optional)
+      - name: Create Unique Workspace
         run: |
-          echo "Performing manual cleanup..."
-          $path = "path-to-your-repo-directory" # Replace with actual path
-          if (Test-Path $path) {
-            Remove-Item -Path $path -Recurse -Force
-            echo "Cleanup performed."
-          } else {
-            echo "No cleanup needed."
-          }
+          $uniqueDir = "runner_work_" + (Get-Date -Format "yyyyMMddHHmmss")
+          New-Item -ItemType Directory -Force -Path $uniqueDir
+          echo "Unique workspace created: $uniqueDir"
+          echo "WORKSPACE_DIR=$uniqueDir" | Out-File -FilePath $Env:GITHUB_ENV -Append
         shell: powershell
 
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
-          path: 'SephMV'
+          path: ${{ env.WORKSPACE_DIR }}
 
       - name: Set up Python environment
         uses: actions/setup-python@v2
@@ -34,48 +30,42 @@ jobs:
 
       - name: Create virtual environment
         run: |
-          echo "Creating virtual environment..."
+          cd ${{ env.WORKSPACE_DIR }}
           python -m venv .venv
           echo "Virtual environment created."
 
       - name: Activate virtual environment and Install dependencies
         run: |
-          echo "Activating virtual environment..."
+          cd ${{ env.WORKSPACE_DIR }}
           .\.venv\Scripts\Activate
-          echo "Virtual environment activated."
-          echo "Installing dependencies..."
           python -m pip install --upgrade pip
-          pip install -r SephMV/requirements.txt
+          pip install -r requirements.txt
           echo "Dependencies installed."
 
       - name: Build the model
         run: |
+          cd ${{ env.WORKSPACE_DIR }}
           .\.venv\Scripts\Activate
-          echo "Running model.py..."
-          python SephMV/model.py
-          echo "model.py executed."
+          python model.py
 
       - name: Train the model
         run: |
+          cd ${{ env.WORKSPACE_DIR }}
           .\.venv\Scripts\Activate
-          echo "Running train.py..."
-          python SephMV/train.py
-          echo "train.py executed."
+          python train.py
 
       - name: Evaluate the model
         run: |
+          cd ${{ env.WORKSPACE_DIR }}
           .\.venv\Scripts\Activate
-          echo "Running model_eval.py..."
-          python SephMV/model_eval.py
-          echo "model_eval.py executed."
+          python model_eval.py
 
       - name: Commit and push if changes
         run: |
+          cd ${{ env.WORKSPACE_DIR }}
           .\.venv\Scripts\Activate
-          cd SephMV
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add -f .
           git commit -m "Automated model update" -a || echo "No changes to commit"
           git push
-          echo "Changes committed and pushed if any."
