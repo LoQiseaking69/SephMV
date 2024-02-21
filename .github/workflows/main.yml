@@ -10,6 +10,11 @@ jobs:
     runs-on: self-hosted
 
     steps:
+      - name: Manual Cleanup (Optional)
+        run: |
+          echo "Performing manual cleanup..."
+          rd /s /q "path-to-your-repo-directory" || echo "No cleanup needed"
+
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
@@ -18,7 +23,7 @@ jobs:
       - name: Set up Python environment
         uses: actions/setup-python@v2
         with:
-          python-version: '3.x'  # This will use the latest stable version of Python 3
+          python-version: '3.x'
 
       - name: Create virtual environment
         run: |
