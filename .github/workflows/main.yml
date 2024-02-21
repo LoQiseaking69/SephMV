@@ -1,4 +1,4 @@
-name: Seph's V1 Model CI/CD
+name: ML Model CI
 
 on:
   push:
@@ -12,26 +12,41 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-      
-      - name: Set up Python
+
+      - name: Pre-clean any previous runs
+        run: |
+          Remove-Item -Path "model/*" -Recurse -Force -ErrorAction Ignore
+
+      - name: Set up Python environment
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
-      
+          python-version: '3.x'  # This will use the latest stable version of Python 3
+
+      - name: Create and activate virtual environment
+        run: |
+          python -m venv venv
+          .\venv\Scripts\Activate
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      
+
       - name: Build the model
-        run: python model.py
-      
+        run: |
+          .\venv\Scripts\Activate
+          python model.py
+
       - name: Train the model
-        run: python train.py
-      
+        run: |
+          .\venv\Scripts\Activate
+          python train.py
+
       - name: Evaluate the model
-        run: python model_eval.py
-      
+        run: |
+          .\venv\Scripts\Activate
+          python model_eval.py
+
       - name: Commit and push if changes
         run: |
           git config --local user.email "action@github.com"
