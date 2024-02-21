@@ -13,12 +13,19 @@ jobs:
       - name: Manual Cleanup (Optional)
         run: |
           echo "Performing manual cleanup..."
-          rd /s /q "path-to-your-repo-directory" || echo "No cleanup needed"
+          $path = "path-to-your-repo-directory" # Replace with actual path
+          if (Test-Path $path) {
+            Remove-Item -Path $path -Recurse -Force
+            echo "Cleanup performed."
+          } else {
+            echo "No cleanup needed."
+          }
+        shell: powershell
 
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
-          path: 'repo'
+          path: 'SephMV'
 
       - name: Set up Python environment
         uses: actions/setup-python@v2
@@ -38,34 +45,34 @@ jobs:
           echo "Virtual environment activated."
           echo "Installing dependencies..."
           python -m pip install --upgrade pip
-          pip install -r repo/requirements.txt
+          pip install -r SephMV/requirements.txt
           echo "Dependencies installed."
 
       - name: Build the model
         run: |
           .\.venv\Scripts\Activate
           echo "Running model.py..."
-          python repo/model.py
+          python SephMV/model.py
           echo "model.py executed."
 
       - name: Train the model
         run: |
           .\.venv\Scripts\Activate
           echo "Running train.py..."
-          python repo/train.py
+          python SephMV/train.py
           echo "train.py executed."
 
       - name: Evaluate the model
         run: |
           .\.venv\Scripts\Activate
           echo "Running model_eval.py..."
-          python repo/model_eval.py
+          python SephMV/model_eval.py
           echo "model_eval.py executed."
 
       - name: Commit and push if changes
         run: |
           .\.venv\Scripts\Activate
-          cd repo
+          cd SephMV
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add -f .
