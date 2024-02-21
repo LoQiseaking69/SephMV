@@ -7,7 +7,6 @@ from collections import deque
 import random
 
 class ReplayBuffer:
-    """Replay Buffer for storing transitions."""
     def __init__(self, max_size):
         self.buffer = deque(maxlen=max_size)
 
@@ -21,7 +20,6 @@ class ReplayBuffer:
         return [np.stack(samples[:, i]) for i in range(samples.shape[1])]
 
 class RBMLayer(layers.Layer):
-    """Restricted Boltzmann Machine Layer."""
     def __init__(self, num_hidden_units):
         super(RBMLayer, self).__init__()
         self.num_hidden_units = num_hidden_units
@@ -41,7 +39,6 @@ class RBMLayer(layers.Layer):
         return tf.nn.sigmoid(activation)
 
 class QLearningLayer(layers.Layer):
-    """Q-Learning Layer for reinforcement learning."""
     def __init__(self, action_space_size, learning_rate=0.001, gamma=0.99, epsilon=0.1):
         super(QLearningLayer, self).__init__()
         self.action_space_size = action_space_size
@@ -50,12 +47,12 @@ class QLearningLayer(layers.Layer):
         self.epsilon = epsilon
         self.epsilon_decay = 0.995
         self.min_epsilon = 0.01
+        self.buffer_index = 0
         self.replay_buffer = ReplayBuffer(100000)
-
-    def build(self, input_shape):
         self.q_network = models.Sequential([
-            layers.Dense(256, activation='relu', kernel_initializer='he_uniform', kernel_regularizer=regularizers.l2(0.01)),
-            layers.Dense(self.action_space_size, kernel_initializer='glorot_uniform')
+            layers.Dense(128, activation='relu', kernel_initializer='he_uniform', kernel_regularizer=regularizers.l2(0.01)),
+            layers.Dense(64, activation='relu', kernel_initializer='he_uniform', kernel_regularizer=regularizers.l2(0.01)),  # Added another dense layer
+            layers.Dense(self.action_space_size, activation='tanh', kernel_initializer='glorot_uniform')  # For continuous actions
         ])
         self.q_network.compile(optimizer=optimizers.Adam(learning_rate=self.learning_rate), loss='mse')
         self.target_q_network = models.clone_model(self.q_network)
@@ -74,56 +71,39 @@ class QLearningLayer(layers.Layer):
             loss = tf.reduce_mean(tf.square(target_q_values - q_values))
         grads = tape.gradient(loss, self.q_network.trainable_variables)
         self.q_network.optimizer.apply_gradients(zip(grads, self.q_network.trainable_variables))
-        if self.epsilon > self.min_epsilon:
-            self.epsilon *= self.epsilon_decay
+        self.buffer_index += 1
         if self.buffer_index % 1000 == 0:
             self.target_q_network.set_weights(self.q_network.get_weights())
+        if self.epsilon > self.min_epsilon:
+            self.epsilon *= self.epsilon_decay
 
     def store_transition(self, state, action, reward, next_state, done):
         self.replay_buffer.store_transition((state, action, reward, next_state, done))
 
     def choose_action(self, state):
-        if np.random.rand() < self.epsilon:
-            return np.random.randint(self.action_space_size)
-        else:
-            q_values = self.q_network.predict(state[np.newaxis, :])
-            return np.argmax(q_values[0])
+      if np.random.rand() < self.epsilon:
+        return np.random.randint(self.action_space_size)
+      else:
+        q_values = self.q_network.predict(state)
+        action = np.argmax(q_values[0])
+        return np.clip(action, 0, self.action_space_size - 1)
 
-def positional_encoding(seq_length, d_model):
-    """Positional encoding for sequence data."""
-    position = np.arange(seq_length)[:, np.newaxis]
-    div_term = np.exp(np.arange(0, d_model, 2) * -(np.log(10000.0) / d_model))
-    pos_encoding = np.zeros((seq_length, d_model))
-    pos_encoding[:, 0::2] = np.sin(position * div_term)
-    pos_encoding[:, 1::2] = np.cos(position * div_term)
-    return tf.constant(pos_encoding, dtype=tf.float32)
 
-def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
-    """Transformer encoder layer."""
-    x = layers.LayerNormalization(epsilon=1e-6)(inputs)
-    x = layers.MultiHeadAttention(key_dim=head_size, num_heads=num_heads, dropout=dropout)(x, x)
-    x = layers.Dropout(dropout)(x)
-    res = x + inputs
-    x = layers.LayerNormalization(epsilon=1e-6)(res)
-    x = layers.Dense(ff_dim, activation='relu', kernel_initializer='he_uniform')(x)
-    x = layers.Dropout(dropout)(x)
-    x = layers.Dense(inputs.shape[-1], kernel_initializer='glorot_uniform')(x)
-    return x + res
+def create_neural_network_model(input_dim, num_hidden_units, action_space_size):
+    input_layer = layers.Input(shape=(input_dim,))  # Adjusted for 24-dimensional input
 
-def create_neural_network_model(seq_length, d_model, num_hidden_units, action_space_size):
-    """Create a neural network model integrating various layers."""
-    input_layer = layers.Input(shape=(seq_length, d_model))
-    x = positional_encoding(seq_length, d_model)
-    x = x + input_layer
-    x = transformer_encoder(x, head_size=64, num_heads=4, ff_dim=256)
-    x_lstm = layers.Bidirectional(layers.LSTM(128, return_sequences=True, kernel_initializer='glorot_uniform'))(x)
-    x_conv = layers.Conv1D(filters=32, kernel_size=3, padding='same', activation='relu', kernel_initializer='he_uniform')(x_lstm)
-
-    # Reshaping the output from Conv1D to match the 2D input expectation of RBMLayer
-    x_flatten = layers.Flatten()(x_conv)
-    x_rbm = RBMLayer(num_hidden_units)(x_flatten)
-
-    q_learning_layer = QLearningLayer(action_space_size)(x_rbm)
+    # A simpler architecture
+    x = layers.Dense(128, activation='relu', kernel_initializer='he_uniform')(input_layer)
+    x = layers.Dense(64, activation='relu', kernel_initializer='he_uniform')(x)
+    x_rbm = RBMLayer(num_hidden_units)(x)  # Including your RBM layer
+    q_learning_layer = QLearningLayer(action_space_size)(x_rbm)  # Q-Learning layer
 
     model = models.Model(inputs=input_layer, outputs=q_learning_layer)
     return model
+
+# Example usage
+input_dim = 24  # BipedalWalker observation space dimension
+num_hidden_units = 128  # Example value
+action_space_size = 4  # BipedalWalker action space dimension
+
+model = create_neural_network_model(input_dim, num_hidden_units, action_space_size)
