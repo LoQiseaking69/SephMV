@@ -10,36 +10,52 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Create virtual environment
-        run: |
-          python -m venv .venv
-          .\.venv\Scripts\Activate
-          python -m pip install --upgrade pip
-
-      - name: Checkout repository into a specific directory
+      - name: Checkout repository
         uses: actions/checkout@v2
         with:
           path: 'repo'
 
-      - name: Install dependencies
+      - name: Set up Python environment
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'  # This will use the latest stable version of Python 3
+
+      - name: Create virtual environment
         run: |
+          echo "Creating virtual environment..."
+          python -m venv .venv
+          echo "Virtual environment created."
+
+      - name: Activate virtual environment and Install dependencies
+        run: |
+          echo "Activating virtual environment..."
           .\.venv\Scripts\Activate
+          echo "Virtual environment activated."
+          echo "Installing dependencies..."
+          python -m pip install --upgrade pip
           pip install -r repo/requirements.txt
+          echo "Dependencies installed."
 
       - name: Build the model
         run: |
           .\.venv\Scripts\Activate
+          echo "Running model.py..."
           python repo/model.py
+          echo "model.py executed."
 
       - name: Train the model
         run: |
           .\.venv\Scripts\Activate
+          echo "Running train.py..."
           python repo/train.py
+          echo "train.py executed."
 
       - name: Evaluate the model
         run: |
           .\.venv\Scripts\Activate
+          echo "Running model_eval.py..."
           python repo/model_eval.py
+          echo "model_eval.py executed."
 
       - name: Commit and push if changes
         run: |
@@ -50,3 +66,4 @@ jobs:
           git add -f .
           git commit -m "Automated model update" -a || echo "No changes to commit"
           git push
+          echo "Changes committed and pushed if any."
