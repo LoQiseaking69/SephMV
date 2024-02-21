@@ -1,25 +1,23 @@
+# model.py
+
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import layers, models, optimizers, regularizers
+from tensorflow.keras import layers, models, regularizers, optimizers
 from collections import deque
+import random
 
 class ReplayBuffer:
     """Replay Buffer for storing transitions."""
     def __init__(self, max_size):
-        self.buffer = np.zeros(max_size, dtype=object)
-        self.max_size = max_size
-        self.buffer_index = 0
+        self.buffer = deque(maxlen=max_size)
 
     def store_transition(self, transition):
-        self.buffer[self.buffer_index % self.max_size] = transition
-        self.buffer_index += 1
+        self.buffer.append(transition)
 
     def sample_buffer(self, batch_size):
-        current_buffer_size = min(self.buffer_index, self.max_size)
-        if current_buffer_size < batch_size:
+        if len(self.buffer) < batch_size:
             return None
-        batch_indices = np.random.choice(current_buffer_size, batch_size, replace=False)
-        samples = np.array(self.buffer[batch_indices], dtype=object)
+        samples = np.array(random.sample(self.buffer, batch_size), dtype=object)
         return [np.stack(samples[:, i]) for i in range(samples.shape[1])]
 
 class RBMLayer(layers.Layer):
@@ -120,7 +118,12 @@ def create_neural_network_model(seq_length, d_model, num_hidden_units, action_sp
     x = transformer_encoder(x, head_size=64, num_heads=4, ff_dim=256)
     x_lstm = layers.Bidirectional(layers.LSTM(128, return_sequences=True, kernel_initializer='glorot_uniform'))(x)
     x_conv = layers.Conv1D(filters=32, kernel_size=3, padding='same', activation='relu', kernel_initializer='he_uniform')(x_lstm)
-    x_rbm = RBMLayer(num_hidden_units)(x_conv)
+
+    # Reshaping the output from Conv1D to match the 2D input expectation of RBMLayer
+    x_flatten = layers.Flatten()(x_conv)
+    x_rbm = RBMLayer(num_hidden_units)(x_flatten)
+
     q_learning_layer = QLearningLayer(action_space_size)(x_rbm)
+
     model = models.Model(inputs=input_layer, outputs=q_learning_layer)
     return model
