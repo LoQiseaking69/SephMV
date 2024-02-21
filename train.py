@@ -1,8 +1,17 @@
-import gym
+# train.py
+
+import os
 import logging
+import gym
 import numpy as np
-from tensorflow.keras import optimizers
 from model import create_neural_network_model
+
+# Initialize the model with appropriate parameters
+seq_length = 24  # Example value, set it according to your environment
+d_model = 16     # Example value, set it according to your environment
+num_hidden_units = 50  # Example value
+action_space_size = 4  # Example value, set it according to the environment
+model = create_neural_network_model(seq_length, d_model, num_hidden_units, action_space_size)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -18,14 +27,14 @@ def train_model_in_bipedalwalker(env_name, model, num_episodes, batch_size=64):
     for episode in range(num_episodes):
         try:
             state = env.reset()
-            state = np.array([state])  # Ensure state is a numpy array with correct shape
+            state = np.array(state).reshape(1, -1)  # Reshape for model input
             done = False
             total_reward = 0
 
             while not done:
                 action = model.choose_action(state)
                 next_state, reward, done, _ = env.step(action)
-                next_state = np.array([next_state])
+                next_state = np.array(next_state).reshape(1, -1)  # Reshape for model input
                 model.store_transition(state, action, reward, next_state, done)
                 model.update(batch_size)
                 state = next_state
@@ -37,22 +46,15 @@ def train_model_in_bipedalwalker(env_name, model, num_episodes, batch_size=64):
 
     env.close()
 
+    # Save the trained model in the current directory
+    save_path = 'trained_model'
+    try:
+        model.save(save_path, save_format='tf')
+        logger.info(f"Model saved successfully at {save_path}")
+    except Exception as e:
+        logger.error(f"An error occurred while saving the model: {e}")
+
+# Example usage
 env_name = 'BipedalWalker-v3'
-seq_length = 128
-d_model = 32
-num_hidden_units = 64
-action_space_size = 4
 num_episodes = 1000
-
-try:
-    model = create_neural_network_model(seq_length, d_model, num_hidden_units, action_space_size)
-    model.compile(optimizer=optimizers.Adam(learning_rate=0.001), loss='mse')
-    train_model_in_bipedalwalker(env_name, model, num_episodes)
-except Exception as e:
-    logger.error(f"An error occurred during model setup or training: {e}")
-
-# Save the trained model
-try:
-    model.save('Seph_model', save_format='tf')
-except Exception as e:
-    logger.error(f"An error occurred while saving the model: {e}")
+train_model_in_bipedalwalker(env_name, model, num_episodes)
