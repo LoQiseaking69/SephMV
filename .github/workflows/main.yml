@@ -16,6 +16,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+        with:
+          repository: LoQiseaking69/SephMV
+          token: ${{ secrets.YOUR_GITHUB_TOKEN }}
+          ssh-strict: true
+          persist-credentials: true
+          clean: true
+          fetch-depth: 1
+          lfs: false
+          submodules: false
+          set-safe-directory: true
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v2
@@ -61,8 +71,8 @@ jobs:
         if: always()
         run: |
           try {
-            Remove-Item -Path ./Seph_model/ -Recurse
+            Remove-Item -Path ./SephMV/ -Recurse -Force
           } catch {
             Write-Host "Error in cleanup: $_"
           }
-        shell: powershell
+        shell: pwsh
