@@ -65,4 +65,4 @@ jobs:
           } catch {
             Write-Host "Error in cleanup: $_"
           }
-        shell: pwsh
+        shell: powershell
