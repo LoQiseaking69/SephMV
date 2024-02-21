@@ -13,10 +13,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Pre-clean any previous runs
-        run: |
-          Remove-Item -Path "model/*" -Recurse -Force -ErrorAction Ignore
-
       - name: Set up Python environment
         uses: actions/setup-python@v2
         with:
@@ -29,6 +25,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          .\venv\Scripts\Activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
@@ -49,6 +46,7 @@ jobs:
 
       - name: Commit and push if changes
         run: |
+          .\venv\Scripts\Activate
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add -f .
