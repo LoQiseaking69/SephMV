@@ -55,15 +55,13 @@ def evaluate_model(model, env_name, num_episodes):
     return avg_reward, std_reward
 
 def main():
-    model_directory = os.getenv('MODEL_PATH')
-    if not model_directory:
-        raise ValueError("MODEL_PATH environment variable not set")
+    # Load the model from the directory where it was saved
+    model_path = 'trained_model'  # Adjusted to the SavedModel directory
+    model = load_model(model_path)
 
     env_name = 'BipedalWalker-v3'
     num_episodes = 100  # Number of episodes to evaluate
 
-    model_path = os.path.join(model_directory, 'Seph_model')  # Adjusted to the SavedModel directory
-    model = load_model(model_path)
     evaluate_model(model, env_name, num_episodes)
 
 if __name__ == "__main__":
