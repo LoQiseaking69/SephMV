@@ -10,43 +10,41 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Set up Python environment
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'  # This will use the latest stable version of Python 3
-
-      - name: Create and activate virtual environment
+      - name: Create virtual environment
         run: |
-          python -m venv venv
-          .\venv\Scripts\Activate
+          python -m venv .venv
+          .\.venv\Scripts\Activate
+          python -m pip install --upgrade pip
+
+      - name: Checkout repository into a specific directory
+        uses: actions/checkout@v2
+        with:
+          path: 'repo'
 
       - name: Install dependencies
         run: |
-          .\venv\Scripts\Activate
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          .\.venv\Scripts\Activate
+          pip install -r repo/requirements.txt
 
       - name: Build the model
         run: |
-          .\venv\Scripts\Activate
-          python model.py
+          .\.venv\Scripts\Activate
+          python repo/model.py
 
       - name: Train the model
         run: |
-          .\venv\Scripts\Activate
-          python train.py
+          .\.venv\Scripts\Activate
+          python repo/train.py
 
       - name: Evaluate the model
         run: |
-          .\venv\Scripts\Activate
-          python model_eval.py
+          .\.venv\Scripts\Activate
+          python repo/model_eval.py
 
       - name: Commit and push if changes
         run: |
-          .\venv\Scripts\Activate
+          .\.venv\Scripts\Activate
+          cd repo
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add -f .
