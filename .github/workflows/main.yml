@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: LoQiseaking69/SephMV
-          token: ${{ secrets.YOUR_GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           ssh-strict: true
           persist-credentials: true
           clean: true
