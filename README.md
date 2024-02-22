@@ -5,7 +5,7 @@ This project involves a complex machine learning model integrating an RBM Layer,
 
 ![Seph's Biome](https://github.com/LoQiseaking69/SephsBIOME/blob/master/Docs/Misc/IMG_7130.png)
 
-# This repository is the intermediate step; where the model code is finalized and prepared, for integration with the GA component.
+## This repository is the intermediate step; where the model code is finalized and prepared, for integration with the GA component.
 
 for building and testing, here is the provided test notebook:
 
