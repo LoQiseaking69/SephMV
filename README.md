@@ -7,9 +7,7 @@ This project involves a complex machine learning model integrating an RBM Layer,
 
 ## This repository is the intermediate step; where the model code is finalized and prepared, for integration with the GA component.
 
-for building and testing, here is the provided test notebook:
-
-[SM2](https://github.com/LoQiseaking69/SM2)
+for building and testing, here is the provided test notebook: [SM2](https://github.com/LoQiseaking69/SM2)
 
 ## Contents
 - `model.py`: The main script containing the model's architecture and training logic. It includes the RBM Layer, ReplayBuffer, QLearningLayer, and other necessary components for model building.
