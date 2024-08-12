@@ -4,7 +4,7 @@
 for building and testing, here is the provided test notebook: [SM2](https://github.com/LoQiseaking69/SM2)
 
 # **"Moving Forward"** <-->
-updates to [SM3]( can be "reverse implemented" or cross-referenced with sm2; although, SM3 attempts to further optimize and compartmentalize compilation and training across multiple cloud performance instances...
+updates to [SM3](https://github.com/LoQiseaking69/SM3) can be "reverse implemented" or cross-referenced with sm2; although, SM3 attempts to further optimize and compartmentalize compilation and training across multiple cloud performance instances...
 
 ## Overview
 This project involves a complex machine learning model integrating an RBM Layer, a Q-Learning Layer, and Transformer Encoder. It is designed for experimenting with reinforcement learning techniques and neural network architectures. Additionally, it includes a model evaluation script (`model_eval.py`) for assessing the performance of the trained model.
